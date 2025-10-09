@@ -1,0 +1,17 @@
+# ignore pycache files
+__pycache__/
+
+
+
+# ignore folders
+analysis/
+cluster analysis
+obd_car_files/
+notes/
+ev-data-pack-v10/
+
+parser1.py
+
+# ignore files
+*.mf4
+~$OBD_data.xlsx

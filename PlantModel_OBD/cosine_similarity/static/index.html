@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Car API Frontend</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    section { margin-bottom: 2rem; }
+    input, textarea { display: block; margin: 0.5rem 0; width: 300px; }
+    button { margin-top: 0.5rem; }
+    pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Car API Frontend</h1>
+
+  <!--
+  <section>
+    <h2>Add Car</h2>
+    <input id="add-manufacturer" placeholder="manufacturer">
+    <input id="add-model" placeholder="model">
+    <input id="add-year" placeholder="year" type="number">
+    <input id="add-country" placeholder="country_region">
+    <input id="add-type" placeholder="type_">
+    <button onclick="addCar()">Add Car</button>
+  </section>
+  -->
+
+  <section>
+    <h2>Get Cars</h2>
+    <input id="get-manufacturer" placeholder="manufacturer">
+    <input id="get-model" placeholder="model">
+    <button onclick="getCars()">Fetch Cars</button>
+    <pre id="cars-output"></pre>
+  </section>
+
+  <section>
+    <h2>Guessing Attack</h2>
+    <input id="check-manufacturer" placeholder="manufacturer">
+    <input id="check-model" placeholder="model">
+    <input id="check-field" placeholder="field (e.g. Pack_SOC, optional)">
+    <textarea id="check-json" placeholder='target_json_arr (JSON array)' rows="5"></textarea>
+    <input id="success-threshold" placeholder="success_threshold" type="number" step="0.01" value="0.8">
+    <input id="display-threshold" placeholder="display_threshold" type="number" step="0.01" value="0.5">
+    <button onclick="checkExistence()">Run Guess</button>
+    <pre id="check-output"></pre>
+  </section>
+
+  <script>
+    const API = "http://127.0.0.1:8000";
+
+    async function getCars() {
+      const manu = encodeURIComponent(document.getElementById("get-manufacturer").value.trim());
+      const model = encodeURIComponent(document.getElementById("get-model").value.trim());
+      const res = await fetch(`${API}/cars/${manu}/${model}`);
+      const text = await res.text();
+      document.getElementById("cars-output").textContent = res.ok ? text : `Error ${res.status}: ${text}`;
+    }
+
+    function parseTargetJson() {
+      const raw = document.getElementById("check-json").value.trim();
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        alert("Invalid JSON—please fix the textarea input!");
+        throw new Error("Invalid JSON");
+      }
+    }
+
+    async function checkExistence() {
+      let targetArr;
+      try {
+        targetArr = parseTargetJson();
+      } catch {
+        return;
+      }
+      const body = {
+        manufacturer: document.getElementById("check-manufacturer").value.trim(),
+        model: document.getElementById("check-model").value.trim(),
+        target_json_arr: targetArr
+      };
+      const field = document.getElementById("check-field").value.trim();
+      if (field) body.field = field;
+      const successThreshold = parseFloat(document.getElementById("success-threshold").value);
+      const displayThreshold = parseFloat(document.getElementById("display-threshold").value);
+      const url = `${API}/guessing-attack?success_threshold=${successThreshold}&display_threshold=${displayThreshold}`;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const output = document.getElementById("check-output");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        output.textContent = `Error ${res.status}: ${err.detail || JSON.stringify(err)}`;
+        return;
+      }
+      const data = await res.json();
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
