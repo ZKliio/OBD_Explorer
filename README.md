@@ -1,7 +1,5 @@
-# Main files to run
----
-
-
+# Main purpose
+Develop a model for predicting SOH of EV Batteries via OBD data (UDS requests)
 
 # Building files
 ---
