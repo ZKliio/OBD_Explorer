@@ -1,9 +1,7 @@
-# Main files to run
----
+# Main purpose
+Develop a model for predicting SOH of EV Batteries via OBD data (UDS requests)
 
-
-
-# Building files
+## Build files
 ---
 py `parser.py` creates OBD.db database
 parser.py iterates through JSON files within folder obd_car_files 
@@ -17,7 +15,7 @@ py `pack_table.py`
 1) Creates specific table to store battery pack related commands from key_signals
 2) Formats for string comparison strategy
 
-# Run files
+## Run files
 PlantModel_OBD/
 
 ### cosine_similarity/
