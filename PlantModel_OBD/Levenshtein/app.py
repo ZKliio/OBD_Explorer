@@ -98,7 +98,9 @@ def load_car(manufacturer, model=None):
                    Pack_Voltage, Pack_SOC, Pack_SOH
             FROM vehicle_pack_commands
             WHERE manufacturer LIKE ?
-        """, (f"%{manufacturer}%",))
+              AND (model = '' OR model IS NULL)
+            """, (manufacturer,))
+        
     rows = cur.fetchone()
     conn.close()
 
@@ -146,8 +148,9 @@ def add_car(payload: CarIn):
 cars =[]
 
 # Get cars by manufacturer and model
+@app.get("/cars/{manufacturer}", response_model=list[CarOut])
 @app.get("/cars/{manufacturer}/{model}", response_model=list[CarOut])
-def get_cars(manufacturer: str, model: str):
+def get_cars(manufacturer: str, model: str = ""):
     global cars
     cars = load_car(manufacturer.capitalize(), model)
     if not cars:

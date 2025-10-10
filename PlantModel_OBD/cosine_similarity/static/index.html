@@ -25,19 +25,24 @@
     <button onclick="addCar()">Add Car</button>
   </section>
   -->
-
+<!-- 
   <section>
     <h2>Get Cars</h2>
     <input id="get-manufacturer" placeholder="manufacturer">
     <input id="get-model" placeholder="model">
     <button onclick="getCars()">Fetch Cars</button>
     <pre id="cars-output"></pre>
-  </section>
+  </section> -->
 
   <section>
     <h2>Guessing Attack</h2>
     <input id="check-manufacturer" placeholder="manufacturer">
     <input id="check-model" placeholder="model">
+
+    <input id="check-year" placeholder="year (optional)" type="number">
+    <input id="check-country" placeholder="country_region (optional)">
+    <input id="check-type" placeholder="type_ (optional)">
+
     <input id="check-field" placeholder="field (e.g. Pack_SOC, optional)">
     <textarea id="check-json" placeholder='target_json_arr (JSON array)' rows="5"></textarea>
     <input id="success-threshold" placeholder="success_threshold" type="number" step="0.01" value="0.8">
@@ -78,6 +83,10 @@
       const body = {
         manufacturer: document.getElementById("check-manufacturer").value.trim(),
         model: document.getElementById("check-model").value.trim(),
+        year: parseInt(document.getElementById("check-year").value) || undefined,
+        country_region: document.getElementById("check-country").value.trim() || undefined,
+        type_: document.getElementById("check-type").value.trim() || undefined,
+
         target_json_arr: targetArr
       };
       const field = document.getElementById("check-field").value.trim();

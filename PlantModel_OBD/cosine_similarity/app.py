@@ -35,20 +35,28 @@ app.add_middleware(
 DB_PATH = "../../OBD.db"  # replace with your real DB path
 
 # --- Models ----------------------------------------------------------------
-
+# Request model (input from frontend side)
 class CheckRequest(BaseModel):
     manufacturer: str
     model: str
+    year: Optional[int] = None
+    country_region: Optional[str] = None
+    type_: Optional[str] = None
     new_car_attributes: Optional[str] = None
     target_json_arr: List[Dict[str, Any]]
     field: Optional[str] = None
 
+# Response models
 class Match(BaseModel):
+    similarity_score: float
     manufacturer: str
     model: str
-    similarity_score: float
+    year: Optional[int] = None
+    country_region: Optional[str] = None
+    type_: Optional[str] = None
     commands_found: Dict[str, Dict[str, Any]]
 
+# Response Models returned in a list
 class CheckResponse(BaseModel):
     exists: bool
     matches: List[Match]
@@ -63,9 +71,13 @@ class CarIn(BaseModel):
     type_: str = ""
 
 class Car:
-    def __init__(self, manufacturer: str, model: str):
+    def __init__(self, manufacturer: str, model: str, year: int = None, 
+                 country_region: str = "", type_: str = ""):
         self.manufacturer = manufacturer
         self.model = model
+        self.year = year
+        self.country_region = country_region
+        self.type_ = type_
         # each key is a field like "Pack_SOC", value is a list of JSON dicts
         self.commands: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -111,7 +123,8 @@ def load_all_known_cars() -> List[Car]:
     """)
     rows = cur.fetchall()
     conn.close()
-
+    
+    # map (manufacturer, model, year, country_region, type) to each unique Car
     cars_map: Dict[Tuple[str, str, int, str, str], Car] = {}
 
     for (
@@ -125,8 +138,11 @@ def load_all_known_cars() -> List[Car]:
         raw_soh,
     ) in rows:
         key = (manufacturer, model, year, country_region, type_)
+
+        # Create Car if not exists in cars_map
         if key not in cars_map:
-            cars_map[key] = Car(manufacturer, model)
+            cars_map[key] = Car(manufacturer, model, year, country_region, type_)
+
         car = cars_map[key]
 
         if raw_vol:
@@ -146,15 +162,26 @@ def canonicalize_json_to_string_sorted(obj: Dict[str, Any]) -> str:
     """
     return json.dumps(obj, sort_keys=True, separators=(",", ":"))
 
-def canonical_identifier(manufacturer: str, model: str) -> str:
+def canonical_identifier(manufacturer: str, model: str,
+                        year: Optional[int] = None, 
+                        country_region: Optional[str] = None, 
+                        type_: Optional[str] = None) -> str:
     """
-    Create a consistent canonical identifier for car manufacturer and model.
+    Creates a consistent canonical identifier for car with all attributes.
     Strip whitespace, lowercase, and remove ALL spaces.
     """
     m = manufacturer.strip().lower().replace(" ", "")
     mod = model.strip().lower().replace(" ", "")
-    return f"{m}_{mod}"
+    identifier = f"{m}_{mod}"
 
+    if year is not None:
+        identifier += f"_{year}"
+    if country_region:
+        identifier += f"_{country_region.strip().lower().replace(' ', '')}"
+    if type_:
+        identifier += f"_{type_.strip().lower().replace(' ', '')}"
+    
+    return identifier
 def normalize_command(cmd: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normalize a command dict to ensure consistent comparison.
@@ -311,14 +338,19 @@ async def guessing_attack_strategy(
                 # Penalize for missing this parameter
                 command_scores.append(0.0)
         
-        # Calculate overall similarity score
-        # Weight: 30% name similarity, 70% command similarity
+        """ 
+        Calculate overall similarity score
+        Weight: 30% name similarity, 70% command similarity 
+        Bonus: +0.2 if any commands found (scaled by fraction of params found)
+        1.0 = perfect name match + all commands exactly matched
+        0.0 = no name similarity + no commands matched
+        """
         if command_scores:
             avg_cmd_score = np.mean(command_scores)
             # Bonus for finding exact matches
             match_bonus = len(commands_found) / len(key_params) * 0.2
-            overall_score = (0.3 * name_similarities[idx] + 
-                           0.7 * avg_cmd_score + 
+            overall_score = (0.5 * name_similarities[idx] + 
+                           0.5 * avg_cmd_score + 
                            match_bonus)
             # Ensure score doesn't exceed 1.0
             overall_score = min(1.0, overall_score)
@@ -329,7 +361,11 @@ async def guessing_attack_strategy(
             matches.append(Match(
                 manufacturer=car.manufacturer,
                 model=car.model,
-                similarity_score=float(overall_score),
+                year=car.year,
+                country_region=car.country_region,
+                type_=car.type_,
+                # similarity_score=float(overall_score),
+                similarity_score=f"{overall_score:.100f}",
                 commands_found=commands_found
             ))
     
