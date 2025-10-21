@@ -4,7 +4,7 @@ import json
 
 # --- CONFIG ---
 DB_PATH = "OBD.db"
-CSV_PATH = "car_models.csv"
+CSV_PATH = "car_details.csv"
 
 # convert JSON list to empty list if not valid JSON
 # converts semicolon-separated string to list then to string

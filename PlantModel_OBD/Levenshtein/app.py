@@ -13,7 +13,7 @@ import Levenshtein
 
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="../static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="./static", html=True), name="static")
 # Put index.html in ./static
 # Access at: http://localhost:3000/static
 

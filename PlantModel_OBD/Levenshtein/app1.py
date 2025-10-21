@@ -13,7 +13,7 @@ import Levenshtein
 import copy # Used for deep copying the priority list data
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="../static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="./static", html=True), name="static")
 # Put index.html in ./static
 # Access at: http://localhost:8000/static
 
