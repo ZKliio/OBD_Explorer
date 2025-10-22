@@ -1,0 +1,160 @@
+Manufacturer,Model,Year,CountryRegion,EV_Status
+Acura,TLX,2021,JPN,NOT EV
+Alfa,Romeo,0,ITA,NOT EV
+Audi,A1,2018,GER,NOT EV
+Audi,A4,2016,GER,NOT EV
+Audi,A6,2018,GER,NOT EV
+Audi,Q4 e-tron,2021,GER,EV
+Audi,RS 3,2021,GER,NOT EV
+Audi,SQ5,2017,GER,NOT EV
+Audi,TT,2014,HUN,NOT EV
+BMW,4 Series,2020,GER,NOT EV
+BMW,X2,2018,GER,NOT EV
+BMW,X3,2017,GER,NOT EV
+BMW,X7,2018,USA,NOT EV
+BMW,i3,2013,GER,EV
+BMW,i3s,2017,GER,EV
+BMW,i4,2021,GER,EV
+BMW,iX3,2020,CHN,EV
+Chevrolet,Bolt EUV,2021,USA,EV
+Chevrolet,Bolt EV,2016,USA,EV
+Chevrolet,Corvette,2020,USA,NOT EV
+Chevrolet,Equinox EV,2023,USA,EV
+Chevrolet,Silverado 1500,2019,USA,NOT EV
+Citroen,eC4 X,2022,ESP,EV
+Dodge,Durango,2011,USA,NOT EV
+Ford,Bronco,2021,USA,NOT EV
+Ford,Edge,2015,USA,NOT EV
+Ford,Escape,2020,USA,EV
+Ford,Explorer,2020,USA,EV
+Ford,F 150,2021,USA,EV
+Ford,F 350,2017,USA,NOT EV
+Ford,Fiesta,2017,GER,NOT EV
+Ford,Focus,2018,GER,NOT EV
+Ford,Fusion,2013,USA,EV
+Ford,Mustang,2015,USA,NOT EV
+Ford,Mustang Mach E,2020,MEX,EV
+Ford,Ranger,2022,USA,NOT EV
+Ford,Transit Connect,2014,ESP,NOT EV
+GMC,Sierra 1500,2019,USA,NOT EV
+Honda,Accord,2023,JPN,EV
+Honda,CR V,2023,JPN,EV
+Honda,Civic,2021,JPN,NOT EV
+Hyundai,Elantra,2020,KOR,EV
+Hyundai,IONIQ 5,2021,KOR,EV
+Hyundai,IONIQ 6,2022,KOR,EV
+Hyundai,IONIQ Electric,2016,KOR,EV
+Hyundai,IONIQ PlugIn,2017,KOR,EV
+Hyundai,Kona,2017,KOR,EV
+Hyundai,Kona Electric,2018,KOR,EV
+Hyundai,Santa Fe,2021,KOR,EV
+Hyundai,Tucson,2020,KOR,EV
+Hyundai,Tucson Hybrid,2020,KOR,EV
+Hyundai,Veloster,2018,KOR,NOT EV
+Jaguar,F PACE,2021,GBR,EV
+Jaguar,I PACE,2018,AUT,EV
+Jeep,Grand Cherokee,2021,USA,EV
+Kia,EV6,2021,KOR,EV
+Kia,EV9,2023,KOR,EV
+Kia,Forte,2018,KOR,NOT EV
+Kia,Niro EV,2018,KOR,EV
+Kia,Optima,2015,KOR,EV
+Kia,Soul,2019,KOR,EV
+Kia,Sportage,2021,KOR,EV
+Kia,Sportage HEV,2021,KOR,EV
+Land,Rover,0,GBR,EV
+Lexus,IS 300,2020,JPN,NOT EV
+MG,MG4,2022,CHN,EV
+MINI,Cooper SE,2020,GBR,EV
+Mazda,3,2019,JPN,NOT EV
+Mazda,CX 90,2023,JPN,EV
+Mazda,MX 5,2015,JPN,NOT EV
+Mercedes,Benz,0,GER,EV
+Mercedes,Benz G,2024,AUT,EV
+Nissan,Altima,2019,USA,NOT EV
+Nissan,Leaf,2017,JPN,EV
+Polestar,2,2020,CHN,EV
+Porsche,Cayenne,2018,SVK,EV
+Porsche,Macan,2014,GER,NOT EV
+Porsche,Macan Electric,2024,GER,EV
+Porsche,Taycan,2019,GER,EV
+Ram,1500,2019,USA,NOT EV
+Renault,Kadjar,2015,FRA,NOT EV
+Rolls,Royce,0,GBR,EV
+Seat,Ibiza,2017,ESP,NOT EV
+Seat,Leon,2020,ESP,EV
+Subaru,Crosstrek,2023,JPN,EV
+Subaru,Forester,2018,JPN,EV
+Subaru,WRX,2021,JPN,NOT EV
+Toyota,4Runner,2009,JPN,NOT EV
+Toyota,Camry,2017,JPN,EV
+Toyota,Corolla,2018,JPN,EV
+Toyota,Corolla Hybrid,2018,JPN,EV
+Toyota,GR Corolla,2022,JPN,NOT EV
+Toyota,GR Supra,2019,AUT,NOT EV
+Toyota,GR86,2021,JPN,NOT EV
+Toyota,Land Cruiser,2021,JPN,NOT EV
+Toyota,Prius Prime,2017,JPN,EV
+Toyota,RAV4,2018,JPN,EV
+Toyota,RAV4 Hybrid,2018,JPN,EV
+Toyota,RAV4 Prime,2020,JPN,EV
+Toyota,Tacoma,2024,MEX,NOT EV
+Toyota,Venza Hybrid,2020,JPN,EV
+Toyota,bZ4X,2022,JPN,EV
+VauxhallOpel,Corsa e,2019,ESP,EV
+Volkswagen,Amarok,2022,RSA,NOT EV
+Volkswagen,e Golf,2019,GER,EV
+Volkswagen,Jetta,2018,MEX,NOT EV
+Acura,,0,JPN,
+Alfa,,0,ITA,
+Audi,,0,GER,
+BMW,,0,GER,
+Chevrolet,,0,USA,
+Citroen,,0,FRA,
+Dodge,,0,USA,
+Ford,,0,USA,
+GMC,,0,USA,
+Honda,,0,JPN,
+Hyundai,,0,KOR,
+Jaguar,,0,GBR,
+Jeep,,0,USA,
+Kia,,0,KOR,
+Land,,0,GBR,
+Lexus,,0,JPN,
+MG,,0,CHN,
+MINI,,0,GBR,
+Mazda,,0,JPN,
+Mercedes,,0,GER,
+Nissan,,0,JPN,
+Polestar,,0,SWE,EV
+Porsche,,0,GER,
+Ram,,0,USA,
+Renault,,0,FRA,
+Rolls,,0,GBR,
+Seat,,0,ESP,
+Subaru,,0,JPN,
+Toyota,,0,JPN,
+VauxhallOpel,,0,GBR,
+Volkswagen,,0,GER,
+Bentley,,0,GBR,
+Buick,,0,USA,
+Cadillac,,0,USA,
+Cupra,,0,ESP,
+Daihatsu,,0,JPN,
+Datsun,,0,JPN,
+Holden,,0,AUS,
+INFINITI,,0,JPN,
+Lamborghini,,0,ITA,
+Lincoln,,0,USA,
+SEAT,,0,ESP,
+Skoda,,0,CZE,
+Chrysler,,0,USA,
+DS,,0,FRA,
+Fiat,,0,ITA,
+Maserati,,0,ITA,
+Peugeot,,0,FRA,
+Tata,,0,IND,
+Audi,Q4 e tron,2021,GER,EV
+Hyundai,IONIQ PlugIn Hybrid,2017,KOR,EV
+Hyundai,Santa Fe Hybrid,2021,KOR,EV
+SAEJ1979,,2014,USA,Standard

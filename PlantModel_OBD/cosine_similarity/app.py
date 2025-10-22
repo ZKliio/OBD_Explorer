@@ -206,7 +206,7 @@ async def guessing_attack_strategy(
 ):
     ALL_PARAMS = ["Pack_SOC", "Pack_Voltage", "Pack_SOH"]
 
-    # 1) Decide which params to test
+    # 1) Decide which params to test (Taken from input ie. "Pack_SOC", "Pack_Voltage", "Pack_SOH")
     if new_car_data.field:
         if new_car_data.field not in ALL_PARAMS:
             raise HTTPException(400, detail=f"Unknown field '{new_car_data.field}'.")
@@ -293,7 +293,7 @@ async def guessing_attack_strategy(
         base_id = new_car_data.new_car_attributes or query_car_id
         return CheckResponse(exists=False, matches=[], new_car_attributes=base_id)
 
-    # 7) Calculate initial similarity based on car names
+    # 7) Vectorize queries, input then Calculate initial similarity based on car names
     query_vec = vectorizer.transform([query_car_id])
     car_id_vecs = vectorizer.transform(car_identifiers)
     name_similarities = cosine_similarity(query_vec, car_id_vecs).flatten()
@@ -320,6 +320,7 @@ async def guessing_attack_strategy(
                 for cmd in car_cmds:
                     normalized = normalize_command(cmd)
                     cmd_str = canonicalize_json_to_string_sorted(normalized)
+                    print('cmd_str:', cmd_str)
                     cmd_vec = vectorizer.transform([cmd_str])
                     score = cosine_similarity(target_vec, cmd_vec).flatten()[0]
                     
@@ -347,7 +348,7 @@ async def guessing_attack_strategy(
         """
         if command_scores:
             avg_cmd_score = np.mean(command_scores)
-            # Bonus for finding exact matches
+            # Bonus for finding exact matches (ie. Pack_SOC to Pack_SOC)
             match_bonus = len(commands_found) / len(key_params) * 0.2
             overall_score = (0.5 * name_similarities[idx] + 
                            0.5 * avg_cmd_score + 

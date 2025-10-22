@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Model Server (Plant Model)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .car-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .fields-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+
+        .field-badge {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .test-section {
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .test-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .test-result.match {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .test-result.no-match {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .json-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Car Model Server (Plant Model)</h1>
+            <p class="subtitle">Port 8001 - Simulates a physical car with randomly initialized field values</p>
+        </div>
+
+        <div class="card">
+            <h2>Car Initialization</h2>
+            <div class="button-group">
+                <!-- <button class="btn-primary" onclick="initializeCar()">Initialize Random Car</button> -->
+                <button class="btn-primary" onclick="getCarInfo()">Get Current Car Info</button>
+                <button class="btn-danger" onclick="resetCar()">Reset Car</button>
+            </div>
+            <div id="initStatus"></div>
+            <div id="carInfoDisplay"></div>
+        </div>
+
+        <div class="card">
+            <h2>Test Field Values</h2>
+            <p style="color: #666; margin-bottom: 20px;">Test if a field value matches the current car's configuration</p>
+            
+            <div class="form-group">
+                <label for="fieldSelect">Select Field:</label>
+                <select id="fieldSelect">
+                    <option value="Pack_SOC">Pack_SOC</option>
+                    <option value="Pack_Voltage">Pack_Voltage</option>
+                    <option value="Pack_SOH">Pack_SOH</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="testValue">Test Value (JSON format):</label>
+                <textarea id="testValue" placeholder='[{"header": "...", "command": "...", "value": "..."}]'></textarea>
+                <small style="color: #666;">Enter the command payload as a JSON array of objects</small>
+            </div>
+
+            <button class="btn-primary" onclick="testField()">Test Field</button>
+            
+            <div id="testResult"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: white;">Processing...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8001';
+        let currentCar = null;
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('active', show);
+        }
+
+        function showStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // async function initializeCar() {
+        //     showLoading(true);
+        //     try {
+        //         const response = await fetch(`${API_URL}/initialize`, {
+        //             method: 'POST'
+        //         });
+        //         const data = await response.json();
+                
+        //         if (response.ok) {
+        //             currentCar = data.car_info;
+        //             displayCarInfo(data.car_info);
+        //             showStatus('initStatus', `✓ ${data.message}`, 'success');
+        //         } else {
+        //             showStatus('initStatus', `✗ Error: ${data.detail}`, 'error');
+        //         }
+        //     } catch (err) {
+        //         showStatus('initStatus', `✗ Connection error: ${err.message}`, 'error');
+        //     } finally {
+        //         showLoading(false);
+        //     }
+        // }
+
+        async function getCarInfo() {
+            showLoading(true);
+            try {
+                const response = await fetch(`${API_URL}/car-info`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentCar = data;
+                    displayCarInfo(data);
+                    showStatus('initStatus', '✓ Car info retrieved', 'success');
+                } else {
+                    showStatus('initStatus', `✗ ${data.detail}`, 'error');
+                }
+            } catch (err) {
+                showStatus('initStatus', `✗ Connection error: ${err.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function resetCar() {
+            showLoading(true);
+            try {
+                const response = await fetch(`${API_URL}/reset`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentCar = null;
+                    document.getElementById('carInfoDisplay').innerHTML = '';
+                    showStatus('initStatus', '✓ Car reset successfully', 'info');
+                } else {
+                    showStatus('initStatus', `✗ Error: ${data.detail}`, 'error');
+                }
+            } catch (err) {
+                showStatus('initStatus', `✗ Connection error: ${err.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function testField() {
+            const field = document.getElementById('fieldSelect').value;
+            const valueText = document.getElementById('testValue').value.trim();
+            
+            if (!valueText) {
+                showStatus('testResult', '✗ Please enter a test value', 'error');
+                return;
+            }
+
+            let testValue;
+            try {
+                testValue = JSON.parse(valueText);
+            } catch (err) {
+                showStatus('testResult', `✗ Invalid JSON: ${err.message}`, 'error');
+                return;
+            }
+
+            showLoading(true);
+            try {
+                const response = await fetch(`${API_URL}/test-field`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        field: field,
+                        value: testValue
+                    })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayTestResult(data);
+                } else {
+                    showStatus('testResult', `✗ Error: ${data.detail}`, 'error');
+                }
+            } catch (err) {
+                showStatus('testResult', `✗ Connection error: ${err.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayCarInfo(carInfo) {
+            const html = `
+                <div class="car-info">
+                    <div class="info-row">
+                        <span class="info-label">Manufacturer:</span>
+                        <span class="info-value">${carInfo.manufacturer}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Model:</span>
+                        <span class="info-value">${carInfo.model}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Year:</span>
+                        <span class="info-value">${carInfo.year || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Country/Region:</span>
+                        <span class="info-value">${carInfo.country_region || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Type:</span>
+                        <span class="info-value">${carInfo.type_ || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Available Fields:</span>
+                        <div class="fields-list">
+                            ${carInfo.fields_available.map(f => `<span class="field-badge">${f}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('carInfoDisplay').innerHTML = html;
+        }
+
+        function displayTestResult(result) {
+            const matchClass = result.matched ? 'match' : 'no-match';
+            const icon = result.matched ? '✓' : '✗';
+            
+            let html = `
+                <div class="test-result ${matchClass}">
+                    <strong>${icon} ${result.message}</strong>
+                    <p>Field: ${result.field}</p>
+                    <p>Matched: ${result.matched}</p>
+            `;
+            
+            if (result.expected_value) {
+                html += `
+                    <div style="margin-top: 10px;">
+                        <strong>Expected Value:</strong>
+                        <div class="json-display">${JSON.stringify(result.expected_value, null, 2)}</div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            document.getElementById('testResult').innerHTML = html;
+        }
+
+        // Sample test values for quick testing
+        const sampleValues = {
+            'Pack_SOC': '[{"header":"7E4","command":"220101","value":"0162:014F4200FFFFFFFFFF"}}]',
+            'Pack_Voltage': '[{"header":"7E4","command":"220105","value":"016C:0156000000000000"}}]',
+            'Pack_SOH': '[{"header":"7E4","command":"220105","value":"0162:014F4200000000000"}]'
+        };
+
+        document.getElementById('fieldSelect').addEventListener('change', function(e) {
+            if (sampleValues[e.target.value]) {
+                document.getElementById('testValue').placeholder = `Example: ${sampleValues[e.target.value]}`;
+            }
+        });
+    </script>
+</body>
+</html>

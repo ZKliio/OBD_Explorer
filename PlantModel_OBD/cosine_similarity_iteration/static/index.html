@@ -1,0 +1,199 @@
+<!-- Final working version with enhanced iterative attack endpoint -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Iterative Car Attack Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f5f6fa;
+      color: #333;
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    h1 {
+      color: #004d99;
+    }
+    form {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: calc(100% - 20px);
+    }
+    button {
+      background-color: #004d99;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #0066cc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    th {
+      background-color: #004d99;
+      color: white;
+    }
+    .section {
+      background: #fff;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+    .fail {
+      color: red;
+      font-weight: bold;
+    }
+    .small {
+      font-size: 0.9em;
+      color: #666;
+    }
+    pre {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Iterative Car Matching Interface</h1>
+  <form id="attackForm">
+    <label>Manufacturer:</label>
+    <input type="text" id="manufacturer" placeholder="e.g. Hyundai" required /><br />
+    <label>Model:</label>
+    <input type="text" id="model" placeholder="e.g. Ioniq 5" required /><br />
+    <label>Year:</label>
+    <input type="number" id="year" placeholder="e.g. 2022" /><br />
+    <label>Country/Region:</label>
+    <input type="text" id="country" placeholder="e.g. KR or SG" /><br />
+    <label>Type:</label>
+    <input type="text" id="type" placeholder="e.g. EV, Hybrid" /><br />
+    <button type="submit">Run Iterative Attack</button>
+  </form>
+
+  <div id="output"></div>
+
+  <script>
+    const output = document.getElementById('output');
+
+    document.getElementById('attackForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      output.innerHTML = '<p><em>Running analysis...</em></p>';
+
+      const payload = {
+        manufacturer: document.getElementById('manufacturer').value.trim(),
+        model: document.getElementById('model').value.trim(),
+        year: parseInt(document.getElementById('year').value) || null,
+        country_region: document.getElementById('country').value.trim() || null,
+        type_: document.getElementById('type').value.trim() || null,
+      };
+
+      try {
+        const res = await fetch('/iterative-attack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          throw new Error('Request failed');
+        }
+        const data = await res.json();
+        renderResult(data);
+      } catch (err) {
+        output.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+      }
+    });
+
+    function renderResult(data) {
+      let html = `<div class="section">
+        <h2>Result Summary</h2>
+        <p><strong>Final String:</strong> <code>${data.final_string}</code></p>
+        <p><strong>Fields matched:</strong> ${data.final_similarity_score}</p>
+      </div>`;
+
+      if (data.unknown_car_info) {
+        html += `<div class="section">
+          <h2>Car Attack List</h2>
+          <pre>${JSON.stringify(data.unknown_car_info, null, 2)}</pre>
+        </div>`;
+      }
+
+      html += `<div class="section">
+        <h2>Initial Sorted List (Top 10)</h2>
+        <table>
+          <tr><th>Rank</th><th>Manufacturer</th><th>Model</th><th>Year</th><th>Similarity</th><th>Identifier</th></tr>`;
+      data.initial_sorted_list.slice(0, 10).forEach((item) => {
+        html += `<tr>
+          <td>${item.rank}</td>
+          <td>${item.manufacturer}</td>
+          <td>${item.model}</td>
+          <td>${item.year || '-'}</td>
+          <td>${item.initial_similarity.toFixed(3)}</td>
+          <td>${item.identifier}</td>
+        </tr>`;
+      });
+      html += `</table></div>`;
+
+      // html += `<div class="section">
+      //   <h2>Iteration Results</h2>
+      //   <table>
+      //     <tr><th>Parameter</th><th>Status</th><th>Best Score</th><th>Matched Car</th><th>Field Value</th></tr>`;
+      // data.iterations.forEach((it) => {
+      //   html += `<tr>
+      //     <td>${it.parameter}</td>
+      //     <td class="${it.success ? 'success' : 'fail'}">${it.status}</td>
+      //     <td>${it.best_score ? it.best_score.toFixed(3) : '-'}</td>
+      //     <td>${it.matched_car ? it.matched_car.manufacturer + ' ' + it.matched_car.model : '-'}</td>
+      //     <td>${it.field_value || '-'}</td>
+      //   </tr>`;
+      // });
+      // html += `</table></div>`;
+
+      html += `<div class="section">
+        <h2>Top 10 Final Matches</h2>
+        <table>
+          <tr><th>Manufacturer</th><th>Model</th><th>Score</th><th>Commands Found</th></tr>`;
+      data.matches.slice(0, 10).forEach((m) => {
+        html += `<tr>
+          <td>${m.manufacturer}</td>
+          <td>${m.model}</td>
+          <td>${m.similarity_score.toFixed(3)}</td>
+          <td><pre>${JSON.stringify(m.commands_found, null, 1)}</pre></td>
+        </tr>`;
+      });
+      html += `</table></div>`;
+
+      output.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

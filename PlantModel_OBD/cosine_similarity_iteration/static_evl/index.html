@@ -1,0 +1,467 @@
+<!-- Enhanced version with similarity evolution visualization -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Iterative Car Attack Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f5f6fa;
+      color: #333;
+      padding: 20px;
+      max-width: 1400px;
+      margin: auto;
+    }
+    h1 {
+      color: #004d99;
+    }
+    h2 {
+      color: #0066cc;
+      border-bottom: 2px solid #004d99;
+      padding-bottom: 5px;
+    }
+    form {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: calc(100% - 20px);
+    }
+    button {
+      background-color: #004d99;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #0066cc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 0.9em;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #004d99;
+      color: white;
+      position: sticky;
+      top: 0;
+    }
+    .section {
+      background: #fff;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+    .fail {
+      color: red;
+      font-weight: bold;
+    }
+    .small {
+      font-size: 0.9em;
+      color: #666;
+    }
+    pre {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 0.85em;
+    }
+    .rank-up {
+      color: green;
+      font-weight: bold;
+    }
+    .rank-down {
+      color: red;
+      font-weight: bold;
+    }
+    .rank-same {
+      color: #999;
+    }
+    .iteration-header {
+      background: #e6f2ff;
+      padding: 10px;
+      margin: 15px 0 10px 0;
+      border-left: 4px solid #004d99;
+      font-weight: bold;
+    }
+    .evolution-container {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .highlight-row {
+      background-color: #fff9e6;
+    }
+    .tab-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: #e0e0e0;
+      border: none;
+      border-radius: 5px 5px 0 0;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .tab.active {
+      background: #004d99;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚗 Iterative Car Matching Interface</h1>
+  <form id="attackForm">
+    <label>Manufacturer:</label>
+    <input type="text" id="manufacturer" placeholder="e.g. Hyundai" required /><br />
+    <label>Model:</label>
+    <input type="text" id="model" placeholder="e.g. Ioniq 5" required /><br />
+    <label>Year:</label>
+    <input type="number" id="year" placeholder="e.g. 2022" /><br />
+    <label>Country/Region:</label>
+    <input type="text" id="country" placeholder="e.g. KR or SG" /><br />
+    <label>Type:</label>
+    <input type="text" id="type" placeholder="e.g. EV, Hybrid" /><br />
+    <button type="submit">Run Iterative Attack</button>
+  </form>
+
+  <div id="output"></div>
+
+  <script>
+    const output = document.getElementById('output');
+
+    document.getElementById('attackForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      output.innerHTML = '<p><em>Running analysis...</em></p>';
+
+      const payload = {
+        manufacturer: document.getElementById('manufacturer').value.trim(),
+        model: document.getElementById('model').value.trim(),
+        year: parseInt(document.getElementById('year').value) || null,
+        country_region: document.getElementById('country').value.trim() || null,
+        type_: document.getElementById('type').value.trim() || null,
+      };
+
+      try {
+        const res = await fetch('/iterative-attack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          throw new Error('Request failed');
+        }
+        const data = await res.json();
+        renderResult(data);
+      } catch (err) {
+        output.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+      }
+    });
+
+    function renderRankChange(current, previous) {
+      if (previous === null || previous === undefined) {
+        return '<span class="rank-same">NEW</span>';
+      }
+      const change = previous - current;
+      if (change > 0) {
+        return `<span class="rank-up">▲ ${change}</span>`;
+      } else if (change < 0) {
+        return `<span class="rank-down">▼ ${Math.abs(change)}</span>`;
+      } else {
+        return '<span class="rank-same">—</span>';
+      }
+    }
+
+    function switchTab(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      // Show selected tab content
+      document.getElementById(tabName).classList.add('active');
+      // Add active class to clicked tab
+      event.target.classList.add('active');
+    }
+
+    function renderResult(data) {
+      let html = `<div class="section">
+        <h2>📊 Result Summary</h2>
+        <p><strong>Target Car:</strong> ${data.target_car.manufacturer} ${data.target_car.model} ${data.target_car.year || ''}</p>
+        <p><strong>Final String:</strong> <code style="word-break: break-all;">${data.final_string}</code></p>
+        <p><strong>Fields matched:</strong> ${data.final_similarity_score}</p>
+        <p><strong>Commands Status:</strong></p>
+        <ul>`;
+      
+      for (const [key, matched] of Object.entries(data.commands_matched)) {
+        const status = matched ? '✅' : '❌';
+        html += `<li>${status} <strong>${key}</strong>: ${matched ? 'Matched' : 'Not matched'}</li>`;
+      }
+      html += `</ul></div>`;
+
+      // Tab navigation
+      html += `<div class="section">
+        <div class="tab-container">
+          <button class="tab active" onclick="switchTab('evolution-tab')">Similarity Evolution</button>
+          <button class="tab" onclick="switchTab('initial-tab')">Initial Rankings</button>
+          <button class="tab" onclick="switchTab('iterations-tab')">Iteration Details</button>
+          <button class="tab" onclick="switchTab('matches-tab')">Final Matches</button>
+          <button class="tab" onclick="switchTab('attack-info-tab')">Attack Info</button>
+        </div>`;
+
+      // Similarity Evolution Tab
+      html += `<div id="evolution-tab" class="tab-content active">
+        <h2>🔄 Similarity Evolution (How Rankings Change)</h2>
+        <p class="small">This shows how car rankings shift as each parameter (Pack_SOC, Pack_Voltage, Pack_SOH) is added to the comparison string.</p>`;
+      
+      if (data.similarity_evolution && data.similarity_evolution.length > 0) {
+        data.similarity_evolution.forEach((evolution, idx) => {
+          html += `<div class="iteration-header">
+            Iteration ${evolution.iteration}: ${evolution.parameter_added}
+            ${evolution.iteration > 0 ? `<span class="small">(Added to string)</span>` : ''}
+          </div>`;
+          
+          // Show the current comparison string
+          html += `<div style="background: #f9f9f9; padding: 10px; margin: 10px 0; border-left: 3px solid #0066cc; border-radius: 3px;">
+            <strong>Current String:</strong><br/>
+            <code style="word-break: break-all; font-size: 0.85em;">${evolution.current_string}</code>
+          </div>`;
+          
+          html += `<div class="evolution-container">
+            <table>
+              <tr>
+                <th>Rank</th>
+                <th>Change</th>
+                <th>Manufacturer</th>
+                <th>Model</th>
+                <th>Year</th>
+                <th>Similarity Score</th>
+                <th>Previous Rank</th>
+              </tr>`;
+          
+          evolution.top_matches.forEach((match, matchIdx) => {
+            const isTopChange = matchIdx < 5 && Math.abs(match.rank_change) >= 3;
+            const rowClass = isTopChange ? 'highlight-row' : '';
+            
+            html += `<tr class="${rowClass}">
+              <td><strong>${match.rank}</strong></td>
+              <td>${renderRankChange(match.rank - 1, match.previous_rank ? match.previous_rank - 1 : null)}</td>
+              <td>${match.manufacturer}</td>
+              <td>${match.model}</td>
+              <td>${match.year || '-'}</td>
+              <td>${match.similarity_score.toFixed(4)}</td>
+              <td>${match.previous_rank || '-'}</td>
+            </tr>`;
+          });
+          
+          html += `</table></div>`;
+        });
+      } else {
+        html += `<p>No similarity evolution data available.</p>`;
+      }
+      html += `</div>`;
+
+      // Initial Rankings Tab
+      html += `<div id="initial-tab" class="tab-content">
+        <h2>🎯 Initial Sorted List (Top 20)</h2>
+        <p class="small">Rankings based on car name/identifier similarity only (before adding commands).</p>
+        <table>
+          <tr><th>Rank</th><th>Manufacturer</th><th>Model</th><th>Year</th><th>Similarity</th><th>Identifier</th></tr>`;
+      data.initial_sorted_list.slice(0, 20).forEach((item) => {
+        html += `<tr>
+          <td>${item.rank}</td>
+          <td>${item.manufacturer}</td>
+          <td>${item.model}</td>
+          <td>${item.year || '-'}</td>
+          <td>${item.initial_similarity.toFixed(4)}</td>
+          <td class="small">${item.identifier}</td>
+        </tr>`;
+      });
+      html += `</table></div>`;
+
+      // Iteration Details Tab
+      html += `<div id="iterations-tab" class="tab-content">
+        <h2>🔍 Iteration Details</h2>`;
+      if (data.iterations && data.iterations.length > 0) {
+        html += `<table>
+          <tr><th>Parameter</th><th>Status</th><th>Details</th></tr>`;
+        data.iterations.forEach((it) => {
+          html += `<tr>
+            <td><strong>${it.parameter}</strong></td>
+            <td>${it.status || 'processed'}</td>
+            <td><pre>${JSON.stringify(it, null, 2)}</pre></td>
+          </tr>`;
+        });
+        html += `</table>`;
+      } else {
+        html += `<p>No iteration details available.</p>`;
+      }
+      html += `</div>`;
+
+      // Final Matches Tab
+      html += `<div id="matches-tab" class="tab-content">
+        <h2>🏆 Top 10 Final Matches</h2>
+        <table>
+          <tr><th>Rank</th><th>Manufacturer</th><th>Model</th><th>Year</th><th>Score</th><th>Commands Found</th></tr>`;
+      data.matches.slice(0, 10).forEach((m, idx) => {
+        html += `<tr>
+          <td>${idx + 1}</td>
+          <td>${m.manufacturer}</td>
+          <td>${m.model}</td>
+          <td>${m.year || '-'}</td>
+          <td>${m.similarity_score.toFixed(4)}</td>
+          <td><pre>${JSON.stringify(m.commands_found, null, 1)}</pre></td>
+        </tr>`;
+      });
+      html += `</table></div>`;
+
+      // Attack Info Tab
+      html += `<div id="attack-info-tab" class="tab-content">
+        <h2>ℹ️ Attack Information</h2>`;
+      
+      if (data.unknown_car_info) {
+        // Display status message
+        html += `<div style="background: ${data.unknown_car_info.status === 'known_car' ? '#e6f7e6' : '#fff3cd'}; 
+                        padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+          <strong>Status:</strong> ${data.unknown_car_info.status === 'known_car' ? '✅ Known Car' : '⚠️ Unknown Car'}<br/>
+          <strong>Message:</strong> ${data.unknown_car_info.message}<br/>
+          <strong>Final Strings Generated:</strong> ${data.unknown_car_info.final_strings_generated}
+        </div>`;
+
+        // Display final strings list nicely
+        if (data.unknown_car_info.final_strings_list && data.unknown_car_info.final_strings_list.length > 0) {
+          html += `<h3>🎯 Generated Attack Strings</h3>
+                   <p class="small">Each string is built using field values from different ranked cars.</p>`;
+          
+          data.unknown_car_info.final_strings_list.forEach((stringInfo, idx) => {
+            html += `<div style="border: 2px solid #004d99; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: #f9f9f9;">
+              <h4 style="color: #004d99; margin-top: 0;">String #${idx + 1} - Primary Match: ${stringInfo.primary_match} (Rank ${stringInfo.primary_rank})</h4>
+              
+              <div style="background: white; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                <strong>Complete String:</strong><br/>
+                <code style="word-break: break-all; font-size: 0.8em; display: block; margin-top: 5px;">${stringInfo.final_string}</code>
+              </div>
+
+              <h5 style="color: #0066cc; margin-bottom: 10px;">Field Sources:</h5>
+              <table style="font-size: 0.85em;">
+                <tr>
+                  <th>Field</th>
+                  <th>Source Car</th>
+                  <th>Rank</th>
+                  <th>Car Identifier</th>
+                  <th>Command Value</th>
+                </tr>`;
+            
+            // Display each field source
+            for (const [fieldName, sourceInfo] of Object.entries(stringInfo.field_sources)) {
+              const statusColor = sourceInfo.from_car === 'none' ? '#ff0000' : '#000';
+              html += `<tr>
+                <td><strong>${fieldName}</strong></td>
+                <td style="color: ${statusColor};">${sourceInfo.from_car}</td>
+                <td>${sourceInfo.rank > 0 ? sourceInfo.rank : 'N/A'}</td>
+                <td class="small">${sourceInfo.car_identifier || '-'}</td>
+                <td><details>
+                  <summary style="cursor: pointer; color: #0066cc;">View Command</summary>
+                  <pre style="margin-top: 5px; font-size: 0.75em;">${sourceInfo.value !== 'not_found' ? JSON.stringify(JSON.parse(sourceInfo.value), null, 2) : 'Not found'}</pre>
+                </details></td>
+              </tr>`;
+            }
+            
+            html += `</table></div>`;
+          });
+        }
+
+        // Display actual car fields if known car
+        if (data.unknown_car_info.status === 'known_car' && data.unknown_car_info.actual_car_fields) {
+          html += `<h3>✅ Actual Car Fields (Ground Truth)</h3>
+                   <table>
+                     <tr><th>Field</th><th>Actual Value</th></tr>`;
+          
+          for (const [field, value] of Object.entries(data.unknown_car_info.actual_car_fields)) {
+            html += `<tr>
+              <td><strong>${field}</strong></td>
+              <td><details>
+                <summary style="cursor: pointer; color: #0066cc;">View Command</summary>
+                <pre style="margin-top: 5px;">${JSON.stringify(JSON.parse(value), null, 2)}</pre>
+              </details></td>
+            </tr>`;
+          }
+          html += `</table>`;
+        }
+
+        // Display closest match if unknown car
+        if (data.unknown_car_info.status === 'unknown_car' && data.unknown_car_info.closest_match) {
+          html += `<h3>🎯 Closest Match in Database</h3>
+                   <table>
+                     <tr><th>Manufacturer</th><th>Model</th><th>Year</th><th>Similarity</th></tr>
+                     <tr>
+                       <td>${data.unknown_car_info.closest_match.manufacturer}</td>
+                       <td>${data.unknown_car_info.closest_match.model}</td>
+                       <td>${data.unknown_car_info.closest_match.year || '-'}</td>
+                       <td>${data.unknown_car_info.closest_match.similarity.toFixed(4)}</td>
+                     </tr>
+                   </table>`;
+        }
+
+        // Raw JSON at the bottom
+        html += `<details style="margin-top: 20px;">
+          <summary style="cursor: pointer; color: #0066cc; font-weight: bold;">View Raw JSON</summary>
+          <pre style="margin-top: 10px;">${JSON.stringify(data.unknown_car_info, null, 2)}</pre>
+        </details>`;
+      } else {
+        html += `<p>No attack information available.</p>`;
+      }
+      html += `</div>`;
+
+      html += `</div>`; // Close section
+
+      output.innerHTML = html;
+      
+      // Make switchTab function globally available
+      window.switchTab = switchTab;
+    }
+  </script>
+</body>
+</html>
+
+
+<!-- try change the data loading path to a query from a sqlite db called OBD.db path: ../OBD.db (basically back one folder)
+
+query can be select *? and perform cluster analysis from there  -->
+
