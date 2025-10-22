@@ -382,17 +382,78 @@
             margin-bottom: 15px;
             border: 1px solid #c3e6cb;
         }
+
+        .resorted-notice {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #856404;
+        }
+
+        .resorted-list-container {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .resorted-list-header {
+            background: #667eea;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .resorted-list-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .resorted-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .resorted-item:last-child {
+            border-bottom: none;
+        }
+
+        .resorted-item:hover {
+            background: #f8f9fa;
+        }
+
+        .rank-change {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #e8eaf6;
+            color: #3f51b5;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Attack Server (Main)</h1>
+            <h1>Attack Server (Main)</h1>
             <p class="subtitle">Port 8000 - Iterative guessing attack against Car Model Server</p>
         </div>
 
         <div class="card">
-            <h2>🚀 Launch Attack</h2>
+            <h2>Launch Attack</h2>
             <p style="color: #666; margin-bottom: 20px;">Enter target car information to begin the iterative attack</p>
             
             <div class="form-grid">
@@ -421,7 +482,7 @@
                 </div>
             </div>
 
-            <button class="btn-attack" onclick="launchAttack()">🔥 Launch Iterative Attack</button>
+            <button class="btn-attack" onclick="launchAttack()">Launch Iterative Attack</button>
             
             <div id="errorMessage"></div>
         </div>
@@ -439,25 +500,25 @@
             </div>
 
             <div class="card">
-                <h2>🎯 Target Car Information</h2>
+                <h2>Target Car Information</h2>
                 <div class="target-car-info" id="targetCarInfo"></div>
             </div>
 
             <div class="card">
-                <h2>🔑 Final Identifier String</h2>
+                <h2>Final Identifier String</h2>
                 <div class="final-identifier" id="finalIdentifier"></div>
             </div>
 
             <div class="card">
                 <h2 class="collapsible" onclick="toggleSection('initialList')">
-                    📋 Initial Sorted List (Top 20)
+                    Initial Sorted List (Top 20)
                     <span class="expand-icon" id="initialListIcon">▼</span>
                 </h2>
                 <div class="collapsible-content" id="initialList"></div>
             </div>
 
             <div class="card">
-                <h2>🔄 Iteration Details</h2>
+                <h2>Iteration Details</h2>
                 <div id="iterationDetails"></div>
             </div>
         </div>
@@ -534,7 +595,7 @@
             displayTargetCarInfo(data.target_car_info);
             displayFinalIdentifier(data.final_string, data.final_matched_fields);
             displayInitialList(data.initial_sorted_list);
-            displayIterations(data.iterations);
+            displayIterations(data.iterations, data.initial_sorted_list);
         }
 
         function displaySummary(summary) {
@@ -649,9 +710,75 @@
             `;
         }
 
-        function displayIterations(iterations) {
-            const html = iterations.map(iteration => {
+        function createResortedListHTML(resortedList, previousList) {
+            // Create a map of previous ranks for comparison
+            const previousRanks = {};
+            if (previousList) {
+                previousList.forEach(item => {
+                    const key = `${item.manufacturer}_${item.model}_${item.year || ''}`;
+                    previousRanks[key] = item.rank;
+                });
+            }
+
+            const listHtml = resortedList.map(item => {
+                const key = `${item.manufacturer}_${item.model}_${item.year || ''}`;
+                const oldRank = previousRanks[key];
+                let rankChangeHtml = '';
+                
+                if (oldRank !== undefined) {
+                    const change = oldRank - item.rank;
+                    if (change > 0) {
+                        rankChangeHtml = `<span class="rank-change" style="color: #28a745;">↑${change}</span>`;
+                    } else if (change < 0) {
+                        rankChangeHtml = `<span class="rank-change" style="color: #dc3545;">↓${Math.abs(change)}</span>`;
+                    } else {
+                        rankChangeHtml = `<span class="rank-change" style="color: #6c757d;">→</span>`;
+                    }
+                }
+
+                return `
+                    <div class="resorted-item">
+                        <div>
+                            <span class="rank-badge">#${item.rank}</span>
+                            <strong style="margin-left: 10px;">${item.manufacturer} ${item.model}</strong>
+                            ${item.year ? `<span style="color: #666; margin-left: 5px;">(${item.year})</span>` : ''}
+                            ${rankChangeHtml}
+                        </div>
+                        <span class="similarity-score">Sim: ${(item.similarity * 100).toFixed(1)}%</span>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="resorted-list-container">
+                    <div class="resorted-list-header">
+                        Re-sorted List (Top 20) - Updated Rankings
+                    </div>
+                    <div class="resorted-list-content">
+                        ${listHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayIterations(iterations, initialList) {
+            let previousList = initialList;
+
+            const html = iterations.map((iteration, idx) => {
                 const statusClass = iteration.final_status === 'matched' ? 'matched' : 'not_found';
+                
+                // Show resorted list if this field was tested with a re-sorted list
+                let resortedListHtml = '';
+                if (iteration.list_resorted && iteration.resorted_list) {
+                    resortedListHtml = `
+                        <div class="resorted-notice">
+                            List was re-sorted before testing this field based on previous matches
+                        </div>
+                        ${createResortedListHTML(iteration.resorted_list, previousList)}
+                    `;
+                    previousList = iteration.resorted_list;
+                }
+
                 const attemptsHtml = iteration.attempts.map(attempt => {
                     const attemptClass = attempt.matched ? 'matched' : 'failed';
                     const icon = attempt.matched ? '✓' : '✗';
@@ -678,6 +805,7 @@
                             <span class="field-name">${iteration.field}</span>
                             <span class="status-badge ${statusClass}">${iteration.final_status.toUpperCase().replace('_', ' ')}</span>
                         </div>
+                        ${resortedListHtml}
                         ${iteration.matched_car ? `
                             <div class="matched-box">
                                 <strong>✓ Matched:</strong> ${iteration.matched_car}

@@ -2,6 +2,7 @@
 Attack Server (Main Server)
 Handles user input and orchestrates iterative attacks against the Car Model Server.
 Fetches target car info from Car Model Server (which auto-initializes).
+NOW WITH RE-SORTING: After each field match, re-calculates similarity and re-sorts candidate list.
 """
 from fastapi import FastAPI, HTTPException
 from starlette.responses import FileResponse
@@ -59,6 +60,8 @@ class IterationDetail(BaseModel):
     final_status: str  # "matched" or "not_found"
     matched_car: Optional[str] = None
     matched_value: Optional[str] = None
+    list_resorted: bool  # NEW: indicates if list was re-sorted before this field
+    resorted_list: Optional[List[Dict[str, Any]]] = None  # Top 20 after re-sorting
 
 class IterativeAttackResponse(BaseModel):
     target_car_info: Dict[str, Any]  # Info about the target car from Car Model Server
@@ -179,6 +182,51 @@ def stringify_commands(cmd_list: List[Dict[str, Any]]) -> str:
     # Keep original order, don't sort commands or keys
     return json.dumps(cmd_list, separators=(',', ':'))
 
+def build_car_identifier_with_commands(car: Car, fields_to_include: List[str]) -> str:
+    """
+    Build a complete identifier string for a car including specified command fields.
+    This mirrors what current_identifier looks like during the attack.
+    """
+    base_id = canonical_identifier(
+        car.manufacturer,
+        car.model,
+        car.year,
+        car.country_region,
+        car.type_
+    )
+    
+    for field in fields_to_include:
+        if field in car.commands and car.commands[field]:
+            cmd_str = stringify_commands(car.commands[field])
+            base_id += f"_{field}:{cmd_str}"
+    
+    return base_id
+
+def calculate_similarity_scores(target_identifier: str, 
+                                car_identifiers: List[str]) -> np.ndarray:
+    """
+    Calculate cosine similarity between target identifier and all car identifiers.
+    Returns array of similarity scores.
+    """
+    all_ids = car_identifiers + [target_identifier]
+    
+    # Try TF-IDF vectorization
+    try:
+        vectorizer = TfidfVectorizer(
+            analyzer="char",
+            ngram_range=(2, 4),
+            min_df=1,
+            max_df=1.0
+        )
+        vectorizer.fit(all_ids)
+        target_vec = vectorizer.transform([target_identifier])
+        car_vecs = vectorizer.transform(car_identifiers)
+        similarities = cosine_similarity(target_vec, car_vecs).flatten()
+        return similarities
+    except:
+        # Fallback to uniform similarity if vectorization fails
+        return np.ones(len(car_identifiers))
+
 # --- Car Model Server Communication ---
 async def get_target_car_info():
     """
@@ -207,19 +255,17 @@ async def test_field_with_car_model(field: str, value: List[Dict[str, Any]]) -> 
 @app.post("/iterative-attack", response_model=IterativeAttackResponse)
 async def iterative_guessing_attack(request: IterativeAttackRequest):
     """
-    Enhanced iterative attack that tests field values from the initial sorted list
-    against the Car Model Server one by one until a match is found.
+    Enhanced iterative attack with RE-SORTING after each successful field match.
     
     PROCESS:
     1. Fetch target car info from Car Model Server (already initialized)
     2. Create initial identifier from user input (manufacturer, model, year, etc.)
-    3. Generate initial sorted list based on name similarity
+    3. Generate initial sorted list based on similarity to initial identifier
     4. For each field (Pack_SOC, Pack_Voltage, Pack_SOH):
-       - Start from top of initial list
-       - Test each candidate car's field value with Car Model Server
-       - On first match: append to identifier string and move to next field
-       - If no match found: continue without appending
-    5. Return detailed log of all attempts and final identifier string
+       a. Test candidates in current sorted order
+       b. On match: Update current_identifier, RE-CALCULATE similarities, RE-SORT list
+       c. Continue to next field with newly sorted list
+    5. Return detailed log showing how list order changed with each match
     """
     ALL_PARAMS = ["Pack_SOC", "Pack_Voltage", "Pack_SOH"]
     
@@ -238,15 +284,13 @@ async def iterative_guessing_attack(request: IterativeAttackRequest):
         request.type_
     )
     
-    # Step 3: Load all known cars and create initial sorted list
+    # Step 3: Load all known cars
     known_cars = load_all_known_cars()
     if not known_cars:
         raise HTTPException(500, detail="No cars in database")
     
-    # Vectorize car identifiers for similarity comparison
-    car_identifiers = []
-    car_id_map = {}
-    
+    # Create base car identifiers (name only, no commands yet)
+    car_base_identifiers = []
     for car in known_cars:
         car_id = canonical_identifier(
             car.manufacturer,
@@ -255,64 +299,29 @@ async def iterative_guessing_attack(request: IterativeAttackRequest):
             car.country_region,
             car.type_
         )
-        car_identifiers.append(car_id)
-        car_id_map[car_id] = car
+        car_base_identifiers.append(car_id)
     
-    # Add initial identifier for vectorization
-    all_car_ids = car_identifiers + [initial_identifier]
+    # Calculate initial similarities
+    initial_similarities = calculate_similarity_scores(initial_identifier, car_base_identifiers)
     
-    # Calculate name-based similarity
-    name_vectorizer = TfidfVectorizer(
-        analyzer="char",
-        ngram_range=(2, 4),
-        min_df=1,
-        max_df=1.0
-    )
-    
-    try:
-        name_vectorizer.fit(all_car_ids)
-        target_vec = name_vectorizer.transform([initial_identifier])
-        car_vecs = name_vectorizer.transform(car_identifiers)
-        name_similarities = cosine_similarity(target_vec, car_vecs).flatten()
-    except:
-        # Fallback to simple matching
-        name_similarities = np.zeros(len(car_identifiers))
-        
-        # If no info provided (brute force), give all cars equal similarity
-        if not request.manufacturer and not request.model:
-            name_similarities = np.ones(len(car_identifiers))  # All equal weight
-        else:
-            for i, car_id in enumerate(car_identifiers):
-                score = 0.0
-                if request.manufacturer and request.manufacturer.lower() in car_id.lower():
-                    score += 0.45
-                if request.model and request.model.lower() in car_id.lower():
-                    score += 0.35
-                if request.year and str(request.year) in car_id:
-                    score += 0.1
-                if request.country_region and request.country_region.lower() in car_id.lower():
-                    score += 0.05
-                if request.type_ and request.type_.lower() in car_id.lower():
-                    score += 0.05
-                name_similarities[i] = score
-    
-    # Create initial sorted list (highest to lowest similarity)
+    # Create initial match list
     initial_matches = []
     for idx, car in enumerate(known_cars):
         initial_matches.append({
             "car": car,
-            "car_identifier": car_identifiers[idx],
-            "similarity": float(name_similarities[idx]),
-            "rank": 0  # Will be set after sorting
+            "car_base_identifier": car_base_identifiers[idx],
+            "similarity": float(initial_similarities[idx]),
+            "rank": 0
         })
     
+    # Sort by initial similarity
     initial_matches.sort(key=lambda x: x["similarity"], reverse=True)
     
-    # Assign ranks
+    # Assign initial ranks
     for i, match in enumerate(initial_matches):
         match["rank"] = i + 1
     
-    # Prepare initial list for response (top 20)
+    # Save initial top 20 for response
     initial_list_info = [
         {
             "rank": match["rank"],
@@ -320,24 +329,39 @@ async def iterative_guessing_attack(request: IterativeAttackRequest):
             "model": match["car"].model,
             "year": match["car"].year,
             "similarity": match["similarity"],
-            "identifier": match["car_identifier"]
+            "identifier": match["car_base_identifier"]
         }
         for match in initial_matches[:20]
     ]
     
-    # Step 4: Iterative field testing
+    # Step 4: Iterative field testing with re-sorting
     current_identifier = initial_identifier
+    matched_fields_so_far = []  # Track which fields have been matched
     iterations = []
     final_matched_fields = {}
     total_attempts = 0
     
-    for field in ALL_PARAMS:
+    for field_idx, field in enumerate(ALL_PARAMS):
         field_attempts = []
         field_matched = False
         matched_car_name = None
         matched_value = None
+        list_was_resorted = field_idx > 0 and len(matched_fields_so_far) > 0
         
-        # Test each candidate in order from the initial sorted list
+        # Capture the current sorted list (top 20) before testing this field
+        current_sorted_list = [
+            {
+                "rank": match["rank"],
+                "manufacturer": match["car"].manufacturer,
+                "model": match["car"].model,
+                "year": match["car"].year,
+                "similarity": match["similarity"],
+                "identifier": build_car_identifier_with_commands(match["car"], matched_fields_so_far)
+            }
+            for match in initial_matches[:20]
+        ] if list_was_resorted else None
+        
+        # Test each candidate in current order
         for match_info in initial_matches:
             car = match_info["car"]
             
@@ -366,12 +390,40 @@ async def iterative_guessing_attack(request: IterativeAttackRequest):
                 )
                 field_attempts.append(attempt)
                 
-                # If matched, append to identifier and move to next field
+                # If matched, update identifier and RE-SORT for next field
                 if matched:
                     field_matched = True
                     matched_car_name = f"{car.manufacturer} {car.model}"
                     matched_value = test_value_str
+                    
+                    # Update current identifier (cumulative)
                     current_identifier += f"_{field}:{test_value_str}"
+                    matched_fields_so_far.append(field)
+                    
+                    # RE-SORT: Recalculate similarities based on updated identifier
+                    # Build full identifiers for all cars including matched fields
+                    updated_car_identifiers = []
+                    for c in known_cars:
+                        full_car_id = build_car_identifier_with_commands(c, matched_fields_so_far)
+                        updated_car_identifiers.append(full_car_id)
+                    
+                    # Recalculate similarities
+                    new_similarities = calculate_similarity_scores(
+                        current_identifier, 
+                        updated_car_identifiers
+                    )
+                    
+                    # Update similarity scores in initial_matches
+                    for idx, match in enumerate(initial_matches):
+                        match["similarity"] = float(new_similarities[idx])
+                    
+                    # RE-SORT by new similarities
+                    initial_matches.sort(key=lambda x: x["similarity"], reverse=True)
+                    
+                    # Update ranks
+                    for i, match in enumerate(initial_matches):
+                        match["rank"] = i + 1
+                    
                     break
                 
             except Exception as e:
@@ -392,7 +444,9 @@ async def iterative_guessing_attack(request: IterativeAttackRequest):
             attempts=field_attempts,
             final_status="matched" if field_matched else "not_found",
             matched_car=matched_car_name,
-            matched_value=matched_value
+            matched_value=matched_value,
+            list_resorted=list_was_resorted,
+            resorted_list=current_sorted_list
         )
         iterations.append(iteration_detail)
         final_matched_fields[field] = field_matched
