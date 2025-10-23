@@ -221,6 +221,7 @@
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
         }
 
         .iteration-header {
@@ -230,10 +231,83 @@
             margin-bottom: 15px;
         }
 
+        .iteration-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
         .field-name {
             font-size: 18px;
             font-weight: bold;
             color: #333;
+        }
+
+        .iteration-string-box {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .iteration-string-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .iteration-string-value {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #333;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+
+        .top-ranked-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .top-ranked-header {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .top-ranked-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .top-ranked-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-ranked-field-label {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 3px;
+        }
+
+        .top-ranked-field-value {
+            font-size: 15px;
+            font-weight: bold;
         }
 
         .status-badge {
@@ -500,26 +574,34 @@
             </div>
 
             <div class="card">
-                <h2>Target Car Information</h2>
+                <h2>🎯 Target Car Information</h2>
                 <div class="target-car-info" id="targetCarInfo"></div>
             </div>
 
             <div class="card">
-                <h2>Final Identifier String</h2>
-                <div class="final-identifier" id="finalIdentifier"></div>
+                <h2>🔗 Initial Identifier String (Iteration 0)</h2>
+                <div class="iteration-string-box">
+                    <div class="iteration-string-label">Starting Point - Before Any Testing</div>
+                    <div class="iteration-string-value" id="initialIdentifier"></div>
+                </div>
             </div>
 
             <div class="card">
                 <h2 class="collapsible" onclick="toggleSection('initialList')">
-                    Initial Sorted List (Top 20)
+                    📋 Initial Sorted List - Top 20 Cars (Iteration 0)
                     <span class="expand-icon" id="initialListIcon">▼</span>
                 </h2>
                 <div class="collapsible-content" id="initialList"></div>
             </div>
 
             <div class="card">
-                <h2>Iteration Details</h2>
+                <h2>🔄 Iteration Details - Field Testing Progression</h2>
                 <div id="iterationDetails"></div>
+            </div>
+
+            <div class="card">
+                <h2>✅ Final Identifier String (After All Iterations)</h2>
+                <div class="final-identifier" id="finalIdentifier"></div>
             </div>
         </div>
     </div>
@@ -593,9 +675,10 @@
         function displayResults(data) {
             displaySummary(data.attack_summary);
             displayTargetCarInfo(data.target_car_info);
-            displayFinalIdentifier(data.final_string, data.final_matched_fields);
+            displayInitialIdentifier(data.initial_identifier);
             displayInitialList(data.initial_sorted_list);
             displayIterations(data.iterations, data.initial_sorted_list);
+            displayFinalIdentifier(data.final_string, data.final_matched_fields);
         }
 
         function displaySummary(summary) {
@@ -679,6 +762,10 @@
             document.getElementById('targetCarInfo').innerHTML = html;
         }
 
+        function displayInitialIdentifier(identifier) {
+            document.getElementById('initialIdentifier').textContent = identifier;
+        }
+
         function displayFinalIdentifier(identifier, matchedFields) {
             const fieldsStatus = Object.entries(matchedFields)
                 .map(([field, matched]) => `${field}: ${matched ? '✓' : '✗'}`)
@@ -692,6 +779,27 @@
         }
 
         function displayInitialList(initialList) {
+            const topCar = initialList[0];
+            const topRankedInitialHtml = `
+                <div class="top-ranked-box" style="margin-bottom: 15px;">
+                    <div class="top-ranked-header">🏆 Top Ranked Car (Before Testing)</div>
+                    <div class="top-ranked-content">
+                        <div class="top-ranked-field">
+                            <div class="top-ranked-field-label">Car</div>
+                            <div class="top-ranked-field-value">${topCar.manufacturer} ${topCar.model} ${topCar.year || ''}</div>
+                        </div>
+                        <div class="top-ranked-field">
+                            <div class="top-ranked-field-label">Exact Matches</div>
+                            <div class="top-ranked-field-value">0</div>
+                        </div>
+                        <div class="top-ranked-field">
+                            <div class="top-ranked-field-label">Similarity</div>
+                            <div class="top-ranked-field-value">${(topCar.similarity * 100).toFixed(1)}%</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
             const html = initialList.map(item => `
                 <div class="list-item">
                     <div>
@@ -706,12 +814,12 @@
             `).join('');
             
             document.getElementById('initialList').innerHTML = `
+                ${topRankedInitialHtml}
                 <div class="initial-list">${html}</div>
             `;
         }
 
         function createResortedListHTML(resortedList, previousList) {
-            // Create a map of previous ranks for comparison
             const previousRanks = {};
             if (previousList) {
                 previousList.forEach(item => {
@@ -744,7 +852,10 @@
                             ${item.year ? `<span style="color: #666; margin-left: 5px;">(${item.year})</span>` : ''}
                             ${rankChangeHtml}
                         </div>
-                        <span class="similarity-score">Sim: ${(item.similarity * 100).toFixed(1)}%</span>
+                        <div>
+                            <span style="font-size: 12px; color: #666; margin-right: 10px;">Matches: ${item.exact_matches}</span>
+                            <span class="similarity-score">Sim: ${(item.similarity * 100).toFixed(1)}%</span>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -767,17 +878,44 @@
             const html = iterations.map((iteration, idx) => {
                 const statusClass = iteration.final_status === 'matched' ? 'matched' : 'not_found';
                 
-                // Show resorted list if this field was tested with a re-sorted list
                 let resortedListHtml = '';
                 if (iteration.list_resorted && iteration.resorted_list) {
                     resortedListHtml = `
                         <div class="resorted-notice">
-                            List was re-sorted before testing this field based on previous matches
+                            ⚠️ List was re-sorted before testing this field based on previous matches
                         </div>
                         ${createResortedListHTML(iteration.resorted_list, previousList)}
                     `;
                     previousList = iteration.resorted_list;
                 }
+
+                const topCar = iteration.top_ranked_car;
+                const topRankedHtml = `
+                    <div class="top-ranked-box">
+                        <div class="top-ranked-header">🏆 Top Ranked Car After This Iteration</div>
+                        <div class="top-ranked-content">
+                            <div class="top-ranked-field">
+                                <div class="top-ranked-field-label">Car</div>
+                                <div class="top-ranked-field-value">${topCar.manufacturer} ${topCar.model} ${topCar.year || ''}</div>
+                            </div>
+                            <div class="top-ranked-field">
+                                <div class="top-ranked-field-label">Exact Matches</div>
+                                <div class="top-ranked-field-value">${topCar.exact_matches}</div>
+                            </div>
+                            <div class="top-ranked-field">
+                                <div class="top-ranked-field-label">Similarity</div>
+                                <div class="top-ranked-field-value">${(topCar.similarity * 100).toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const stringHtml = `
+                    <div class="iteration-string-box">
+                        <div class="iteration-string-label">Identifier String After Iteration ${iteration.iteration_number}</div>
+                        <div class="iteration-string-value">${iteration.updated_string}</div>
+                    </div>
+                `;
 
                 const attemptsHtml = iteration.attempts.map(attempt => {
                     const attemptClass = attempt.matched ? 'matched' : 'failed';
@@ -802,7 +940,10 @@
                 return `
                     <div class="iteration-card">
                         <div class="iteration-header">
-                            <span class="field-name">${iteration.field}</span>
+                            <div>
+                                <span class="iteration-number">Iteration ${iteration.iteration_number}</span>
+                                <span class="field-name">${iteration.field}</span>
+                            </div>
                             <span class="status-badge ${statusClass}">${iteration.final_status.toUpperCase().replace('_', ' ')}</span>
                         </div>
                         ${resortedListHtml}
@@ -811,8 +952,10 @@
                                 <strong>✓ Matched:</strong> ${iteration.matched_car}
                             </div>
                         ` : ''}
-                        <div style="font-size: 14px; color: #666; margin-bottom: 10px;">
-                            ${iteration.attempts.length} attempt(s) made
+                        ${stringHtml}
+                        ${topRankedHtml}
+                        <div style="font-size: 14px; color: #666; margin-bottom: 10px; font-weight: 600;">
+                            Testing Attempts (${iteration.attempts.length} total)
                         </div>
                         ${attemptsHtml}
                     </div>
