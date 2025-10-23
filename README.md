@@ -2,6 +2,19 @@
 Develop a model for predicting SOH of EV Pack Batteries via OBD data (UDS requests)
 Simulating car (plant model) and performing guessing attacks based on current database of transmit messages (attack server) 
 
+# Run files
+PlantModel_OBD/
+
+# Actual Plant Model Server and Attack Server
+Plant Model Server: plant_cosine/
+Attack Server: cosine_plant/ 
+Run both of these servers in separate terminals
+py `app.py` 
+Plant Model Server simulates actual car
+Attack Server simulates OBD explorer testing
+
+
+
 ## Resources
 ### OBD.db
 Contains all vehicles sourced online 
@@ -27,17 +40,6 @@ formatted in obd explorer database reformatted into sqlite database OBD.db
 py `pack_table.py`
 1) Creates specific table to store battery pack related commands from key_signals
 2) Formats for string comparison strategy
-
-## Run files
-PlantModel_OBD/
-
-## Actual Plant Model Server and Attack Server
-### Plant Model Server: plant_cosine/
-### Attack Server: cosine_plant/ 
-Run both of these servers in separate terminals
-py `app.py` 
-Plant Model Server simulates actual car
-Attack Server simulates OBD explorer testing
 
 
 ## Testing algorithms (not important)
