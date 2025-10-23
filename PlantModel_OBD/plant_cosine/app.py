@@ -261,10 +261,9 @@ async def startup_event():
         print(f"\n🚗 Car Model Server initialized:")
         print(f"   Car: {current_car['manufacturer']} {current_car['model']} {current_car.get('year', '')}")
         print(f"   Available fields: {list(current_car['commands'].keys())}")
-        print(f"Field values:")
+        print(f"   Field counts:")
         for field, value in current_car['commands'].items():
-            print(f"{field}: \n{value}\n")
-
+            print(f"      {field}: {len(value) if isinstance(value, list) else 1} command(s)")
     except Exception as e:
         print(f"❌ Failed to initialize car: {str(e)}")
         import traceback
@@ -335,8 +334,6 @@ async def load_car(manufacturer: str, model: str, year: Optional[int] = None):
         print(f"\n🔧 Debug: Loaded specific car:")
         print(f"   Car: {current_car['manufacturer']} {current_car['model']}{year_str}")
         print(f"   Available fields: {list(current_car['commands'].keys())}")
-        for field, value in current_car['commands'].items():
-            print(f"{field}: \n{value}\n")
         
         return {
             "status": "loaded",
