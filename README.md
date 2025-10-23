@@ -8,7 +8,8 @@ PlantModel_OBD/
 # Actual Plant Model Server and Attack Server
 Plant Model Server: plant_cosine/
 Attack Server: cosine_plant/ 
-Run both of these servers in separate terminals
+---
+Run both of these servers in separate terminals 
 py `app.py` 
 Plant Model Server simulates actual car
 Attack Server simulates OBD explorer testing
