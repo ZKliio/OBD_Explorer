@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -100,6 +100,16 @@
 
         .btn-secondary:hover {
             background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
             transform: translateY(-2px);
         }
 
@@ -237,6 +247,8 @@
             font-size: 13px;
             overflow-x: auto;
             border: 1px solid #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .loading {
@@ -263,6 +275,57 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .car-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .car-item {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .car-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .car-item:last-child {
+            border-bottom: none;
+        }
+
+        .car-item-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .car-item-details {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .debug-section {
+            border-top: 2px solid #e0e0e0;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+
+        .debug-label {
+            background: #f0ad4e;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -273,11 +336,10 @@
         </div>
 
         <div class="card">
-            <h2>Car Initialization</h2>
+            <h2>Current Car Information</h2>
             <div class="button-group">
-                <!-- <button class="btn-primary" onclick="initializeCar()">Initialize Random Car</button> -->
-                <button class="btn-primary" onclick="getCarInfo()">Get Current Car Info</button>
-                <button class="btn-danger" onclick="resetCar()">Reset Car</button>
+                <button class="btn-primary" onclick="getCarInfo()">Refresh Car Info</button>
+                <button class="btn-danger" onclick="resetCar()">Reset to Random Car</button>
             </div>
             <div id="initStatus"></div>
             <div id="carInfoDisplay"></div>
@@ -307,6 +369,42 @@
             <div id="testResult"></div>
         </div>
 
+        <div class="card">
+            <div class="debug-section">
+                <div class="debug-label">DEBUG MODE</div>
+                <h2>Load Specific Car</h2>
+                <p style="color: #666; margin-bottom: 20px;">Load a specific car from the database for debugging purposes</p>
+                
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="listAllCars()">List All Available Cars</button>
+                </div>
+
+                <div id="carListContainer"></div>
+
+                <div style="margin-top: 20px;">
+                    <h3 style="font-size: 16px; margin-bottom: 15px;">Or Load by Name:</h3>
+                    <div class="form-group">
+                        <label for="manufacturerInput">Manufacturer:</label>
+                        <input type="text" id="manufacturerInput" placeholder="e.g., Tesla">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modelInput">Model:</label>
+                        <input type="text" id="modelInput" placeholder="e.g., Model 3">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="yearInput">Year (optional):</label>
+                        <input type="number" id="yearInput" placeholder="e.g., 2021">
+                    </div>
+
+                    <button class="btn-success" onclick="loadSpecificCar()">Load This Car</button>
+                </div>
+
+                <div id="loadCarStatus"></div>
+            </div>
+        </div>
+
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p style="margin-top: 10px; color: white;">Processing...</p>
@@ -316,6 +414,7 @@
     <script>
         const API_URL = 'http://localhost:8001';
         let currentCar = null;
+        let allCars = [];
 
         function showLoading(show) {
             document.getElementById('loading').classList.toggle('active', show);
@@ -326,28 +425,6 @@
             el.innerHTML = `<div class="status ${type}">${message}</div>`;
         }
 
-        // async function initializeCar() {
-        //     showLoading(true);
-        //     try {
-        //         const response = await fetch(`${API_URL}/initialize`, {
-        //             method: 'POST'
-        //         });
-        //         const data = await response.json();
-                
-        //         if (response.ok) {
-        //             currentCar = data.car_info;
-        //             displayCarInfo(data.car_info);
-        //             showStatus('initStatus', `✓ ${data.message}`, 'success');
-        //         } else {
-        //             showStatus('initStatus', `✗ Error: ${data.detail}`, 'error');
-        //         }
-        //     } catch (err) {
-        //         showStatus('initStatus', `✗ Connection error: ${err.message}`, 'error');
-        //     } finally {
-        //         showLoading(false);
-        //     }
-        // }
-
         async function getCarInfo() {
             showLoading(true);
             try {
@@ -357,18 +434,22 @@
                 if (response.ok) {
                     currentCar = data;
                     displayCarInfo(data);
-                    showStatus('initStatus', '✓ Car info retrieved', 'success');
+                    showStatus('initStatus', 'Car info retrieved successfully', 'success');
                 } else {
-                    showStatus('initStatus', `✗ ${data.detail}`, 'error');
+                    showStatus('initStatus', `Error: ${data.detail}`, 'error');
                 }
             } catch (err) {
-                showStatus('initStatus', `✗ Connection error: ${err.message}`, 'error');
+                showStatus('initStatus', `Connection error: ${err.message}`, 'error');
             } finally {
                 showLoading(false);
             }
         }
 
         async function resetCar() {
+            if (!confirm('Reset and load a new random car?')) {
+                return;
+            }
+
             showLoading(true);
             try {
                 const response = await fetch(`${API_URL}/reset`, {
@@ -377,14 +458,104 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    currentCar = null;
-                    document.getElementById('carInfoDisplay').innerHTML = '';
-                    showStatus('initStatus', '✓ Car reset successfully', 'info');
+                    currentCar = data.car_info;
+                    displayCarInfo(data.car_info);
+                    showStatus('initStatus', data.message, 'info');
                 } else {
-                    showStatus('initStatus', `✗ Error: ${data.detail}`, 'error');
+                    showStatus('initStatus', `Error: ${data.detail}`, 'error');
                 }
             } catch (err) {
-                showStatus('initStatus', `✗ Connection error: ${err.message}`, 'error');
+                showStatus('initStatus', `Connection error: ${err.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function listAllCars() {
+            showLoading(true);
+            try {
+                const response = await fetch(`${API_URL}/cars`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    allCars = data;
+                    displayCarList(data);
+                } else {
+                    showStatus('loadCarStatus', `Error: ${data.detail}`, 'error');
+                }
+            } catch (err) {
+                showStatus('loadCarStatus', `Connection error: ${err.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayCarList(cars) {
+            if (cars.length === 0) {
+                document.getElementById('carListContainer').innerHTML = 
+                    '<div class="status info">No cars found in database</div>';
+                return;
+            }
+
+            let html = '<div class="car-list">';
+            cars.forEach(car => {
+                const yearStr = car.year ? ` (${car.year})` : '';
+                const regionStr = car.country_region ? ` - ${car.country_region}` : '';
+                const typeStr = car.type_ ? ` [${car.type_}]` : '';
+                
+                html += `
+                    <div class="car-item" onclick="selectCarFromList('${car.manufacturer}', '${car.model}', ${car.year || 'null'})">
+                        <div class="car-item-title">${car.manufacturer} ${car.model}${yearStr}</div>
+                        <div class="car-item-details">${regionStr}${typeStr}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            document.getElementById('carListContainer').innerHTML = html;
+        }
+
+        async function selectCarFromList(manufacturer, model, year) {
+            document.getElementById('manufacturerInput').value = manufacturer;
+            document.getElementById('modelInput').value = model || '';
+            document.getElementById('yearInput').value = year || '';
+            
+            await loadSpecificCar();
+        }
+
+        async function loadSpecificCar() {
+            const manufacturer = document.getElementById('manufacturerInput').value.trim();
+            const model = document.getElementById('modelInput').value.trim();
+            const yearInput = document.getElementById('yearInput').value.trim();
+            const year = yearInput ? parseInt(yearInput) : null;
+
+            if (!manufacturer) {
+                showStatus('loadCarStatus', 'Please enter manufacturer and model', 'error');
+                return;
+            }
+
+            showLoading(true);
+            try {
+                let url = `${API_URL}/load-car?manufacturer=${encodeURIComponent(manufacturer)}&model=${encodeURIComponent(model)}`;
+                if (year) {
+                    url += `&year=${year}`;
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentCar = data.car_info;
+                    displayCarInfo(data.car_info);
+                    showStatus('loadCarStatus', data.message, 'success');
+                    showStatus('initStatus', `Loaded specific car: ${data.message}`, 'info');
+                } else {
+                    showStatus('loadCarStatus', `Error: ${data.detail}`, 'error');
+                }
+            } catch (err) {
+                showStatus('loadCarStatus', `Connection error: ${err.message}`, 'error');
             } finally {
                 showLoading(false);
             }
@@ -395,7 +566,7 @@
             const valueText = document.getElementById('testValue').value.trim();
             
             if (!valueText) {
-                showStatus('testResult', '✗ Please enter a test value', 'error');
+                showStatus('testResult', 'Please enter a test value', 'error');
                 return;
             }
 
@@ -403,7 +574,7 @@
             try {
                 testValue = JSON.parse(valueText);
             } catch (err) {
-                showStatus('testResult', `✗ Invalid JSON: ${err.message}`, 'error');
+                showStatus('testResult', `Invalid JSON: ${err.message}`, 'error');
                 return;
             }
 
@@ -424,10 +595,10 @@
                 if (response.ok) {
                     displayTestResult(data);
                 } else {
-                    showStatus('testResult', `✗ Error: ${data.detail}`, 'error');
+                    showStatus('testResult', `Error: ${data.detail}`, 'error');
                 }
             } catch (err) {
-                showStatus('testResult', `✗ Connection error: ${err.message}`, 'error');
+                showStatus('testResult', `Connection error: ${err.message}`, 'error');
             } finally {
                 showLoading(false);
             }
@@ -469,11 +640,11 @@
 
         function displayTestResult(result) {
             const matchClass = result.matched ? 'match' : 'no-match';
-            const icon = result.matched ? '✓' : '✗';
+            const symbol = result.matched ? '[MATCH]' : '[NO MATCH]';
             
             let html = `
                 <div class="test-result ${matchClass}">
-                    <strong>${icon} ${result.message}</strong>
+                    <strong>${symbol} ${result.message}</strong>
                     <p>Field: ${result.field}</p>
                     <p>Matched: ${result.matched}</p>
             `;
@@ -491,17 +662,9 @@
             document.getElementById('testResult').innerHTML = html;
         }
 
-        // Sample test values for quick testing
-        const sampleValues = {
-            'Pack_SOC': '[{"header":"7E4","command":"220101","value":"0162:014F4200FFFFFFFFFF"}}]',
-            'Pack_Voltage': '[{"header":"7E4","command":"220105","value":"016C:0156000000000000"}}]',
-            'Pack_SOH': '[{"header":"7E4","command":"220105","value":"0162:014F4200000000000"}]'
-        };
-
-        document.getElementById('fieldSelect').addEventListener('change', function(e) {
-            if (sampleValues[e.target.value]) {
-                document.getElementById('testValue').placeholder = `Example: ${sampleValues[e.target.value]}`;
-            }
+        // Load car info on page load
+        window.addEventListener('load', () => {
+            getCarInfo();
         });
     </script>
 </body>

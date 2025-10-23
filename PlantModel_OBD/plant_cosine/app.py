@@ -54,6 +54,13 @@ class CarModelInfo(BaseModel):
     Pack_Voltage: Optional[List[Dict[str, Any]]] = None
     Pack_SOH: Optional[List[Dict[str, Any]]] = None
 
+class CarListItem(BaseModel):
+    manufacturer: str
+    model: str
+    year: Optional[int] = None
+    country_region: Optional[str] = None
+    type_: Optional[str] = None
+
 # --- Global state for the current car ---
 current_car: Optional[Dict[str, Any]] = None
 
@@ -81,6 +88,69 @@ def parse_json_field(raw_value: Any) -> Optional[List[Dict[str, Any]]]:
             return None
     except:
         return None
+
+def load_specific_car_from_db(manufacturer: str, model: str, year: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Load a specific car from the database by manufacturer and model (and optionally year).
+    Returns a dict with car metadata and commands.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    
+    # Build query based on whether year is provided
+    if year is not None:
+        query = """
+            SELECT manufacturer, model, year, country_region, type,
+                   Pack_Voltage, Pack_SOC, Pack_SOH
+            FROM vehicle_pack_commands
+            WHERE manufacturer = ? AND model = ? AND year = ?
+        """
+        params = (manufacturer, model, year)
+    else:
+        query = """
+            SELECT manufacturer, model, year, country_region, type,
+                   Pack_Voltage, Pack_SOC, Pack_SOH
+            FROM vehicle_pack_commands
+            WHERE manufacturer = ? AND model = ?
+        """
+        params = (manufacturer, model)
+    
+    cur.execute(query, params)
+    row = cur.fetchone()
+    conn.close()
+    
+    if not row:
+        year_str = f" (year: {year})" if year is not None else ""
+        raise HTTPException(404, detail=f"Car not found: {manufacturer} {model}{year_str}")
+    
+    # Unpack the row
+    (manufacturer, model, year, country_region, type_,
+     raw_voltage, raw_soc, raw_soh) = row
+    
+    # Initialize car data structure
+    car_data = {
+        "manufacturer": manufacturer,
+        "model": model,
+        "year": year,
+        "country_region": country_region or "",
+        "type_": type_ or "",
+        "commands": {}
+    }
+    
+    # Parse each field FROM THIS SPECIFIC ROW ONLY
+    pack_voltage = parse_json_field(raw_voltage)
+    if pack_voltage:
+        car_data["commands"]["Pack_Voltage"] = pack_voltage
+    
+    pack_soc = parse_json_field(raw_soc)
+    if pack_soc:
+        car_data["commands"]["Pack_SOC"] = pack_soc
+    
+    pack_soh = parse_json_field(raw_soh)
+    if pack_soh:
+        car_data["commands"]["Pack_SOH"] = pack_soh
+    
+    return car_data
 
 def load_random_car_from_db() -> Dict[str, Any]:
     """
@@ -131,12 +201,12 @@ def load_random_car_from_db() -> Dict[str, Any]:
         car_data["commands"]["Pack_SOH"] = pack_soh
     
     # Debug output
-    print(f"   Raw Pack_Voltage from DB: {raw_voltage[:100] if raw_voltage else 'None'}...")
-    print(f"   Parsed Pack_Voltage: {pack_voltage}")
-    print(f"   Raw Pack_SOC from DB: {raw_soc[:100] if raw_soc else 'None'}...")
-    print(f"   Parsed Pack_SOC: {pack_soc}")
-    print(f"   Raw Pack_SOH from DB: {raw_soh[:100] if raw_soh else 'None'}...")
-    print(f"   Parsed Pack_SOH: {pack_soh}")
+    # print(f"   Raw Pack_Voltage from DB: {raw_voltage[:100] if raw_voltage else 'None'}...")
+    # print(f"   Parsed Pack_Voltage: {pack_voltage}")
+    # print(f"   Raw Pack_SOC from DB: {raw_soc[:100] if raw_soc else 'None'}...")
+    # print(f"   Parsed Pack_SOC: {pack_soc}")
+    # print(f"   Raw Pack_SOH from DB: {raw_soh[:100] if raw_soh else 'None'}...")
+    # print(f"   Parsed Pack_SOH: {pack_soh}")
     
     return car_data
 
@@ -201,6 +271,34 @@ async def startup_event():
 
 # --- Endpoints ---
 
+@app.get("/cars", response_model=List[CarListItem])
+async def list_cars():
+    """
+    List all available cars in the database.
+    Useful for debugging - shows what cars can be loaded.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT manufacturer, model, year, country_region, type
+        FROM vehicle_pack_commands
+        ORDER BY manufacturer, model, year
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    
+    return [
+        CarListItem(
+            manufacturer=row[0],
+            model=row[1],
+            year=row[2],
+            country_region=row[3],
+            type_=row[4]
+        )
+        for row in rows
+    ]
+
 @app.get("/car-info")
 async def get_car_info():
     """
@@ -220,6 +318,42 @@ async def get_car_info():
         Pack_Voltage=current_car["commands"].get("Pack_Voltage"),
         Pack_SOH=current_car["commands"].get("Pack_SOH")
     )
+
+@app.post("/load-car")
+async def load_car(manufacturer: str, model: str, year: Optional[int] = None):
+    """
+    Load a specific car by manufacturer and model (and optionally year).
+    Useful for debugging specific car configurations.
+    
+    Example: POST /load-car?manufacturer=Tesla&model=Model%203&year=2021
+    """
+    global current_car
+    try:
+        current_car = load_specific_car_from_db(manufacturer, model, year)
+        year_str = f" ({year})" if year else ""
+        print(f"\n🔧 Debug: Loaded specific car:")
+        print(f"   Car: {current_car['manufacturer']} {current_car['model']}{year_str}")
+        print(f"   Available fields: {list(current_car['commands'].keys())}")
+        
+        return {
+            "status": "loaded",
+            "message": f"Loaded car: {current_car['manufacturer']} {current_car['model']}{year_str}",
+            "car_info": CarModelInfo(
+                manufacturer=current_car["manufacturer"],
+                model=current_car["model"],
+                year=current_car["year"],
+                country_region=current_car["country_region"],
+                type_=current_car["type_"],
+                fields_available=list(current_car["commands"].keys()),
+                Pack_SOC=current_car["commands"].get("Pack_SOC"),
+                Pack_Voltage=current_car["commands"].get("Pack_Voltage"),
+                Pack_SOH=current_car["commands"].get("Pack_SOH")
+            )
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, detail=f"Failed to load car: {str(e)}")
 
 @app.post("/test-field", response_model=TestFieldResponse)
 async def test_field(request: TestFieldRequest):
