@@ -6,13 +6,13 @@ Simulating car (plant model) and performing guessing attacks based on current da
 PlantModel_OBD/
 
 # Actual Plant Model Server and Attack Server
-Plant Model Server: plant_cosine/
-Attack Server: cosine_plant/ 
+1) Plant Model Server: plant_cosine/
+2) Attack Server: cosine_plant/ 
 ---
 Run both of these servers in separate terminals 
 py `app.py` 
-Plant Model Server simulates actual car
-Attack Server simulates OBD explorer testing
+- Plant Model Server simulates actual car
+- Attack Server simulates OBD explorer testing
 
 
 
