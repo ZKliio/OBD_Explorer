@@ -2,6 +2,14 @@
 Develop a model for predicting SOH of EV Pack Batteries via OBD data (UDS requests)
 Simulating car (plant model) and performing guessing attacks based on current database of transmit messages (attack server) 
 
+## Run files
+PlantModel_OBD/
+
+## Plant Model Server and Attack Server
+Various branches for different versions of Attack Server
+1) dynamic_iteration: Most updated, uses success counter to prioritize successful matches before re-sorting, add on to dynamic iteration 
+2) static_iteration: Uses same initial list for subsequent comparisons (no updates)
+
 ## Resources
 ### OBD.db
 Contains all vehicles sourced online 
@@ -28,14 +36,6 @@ py `pack_table.py`
 1) Creates specific table to store battery pack related commands from key_signals
 2) Formats for string comparison strategy
 
-## Run files
-PlantModel_OBD/
-
-## Plant Model Server and Attack Server
-Various branches for different versions of Attack Server
-1) dynamic_scoring: Most updated, uses success counter to prioritize successful matches before re-sorting, add on to dynamic iteration 
-2) dynamic_iteration: After each successful match, tag new field to initial identifier string; Re-sorts with new field attached to all strings
-3) static_iteration: Uses same initial list for subsequent comparisons (no updates)
 
 ## Testing algorithms (not important)
 ### cosine_similarity/
