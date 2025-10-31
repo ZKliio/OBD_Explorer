@@ -258,7 +258,7 @@ async def startup_event():
     global current_car
     try:
         current_car = load_random_car_from_db()
-        print(f"\n🚗 Car Model Server initialized:")
+        print(f"\nCar Model Server initialized:")
         print(f"   Car: {current_car['manufacturer']} {current_car['model']} {current_car.get('year', '')}")
         print(f"   Available fields: {list(current_car['commands'].keys())}")
         print(f"Field values:")
@@ -266,7 +266,7 @@ async def startup_event():
             print(f"{field}: \n{value}\n")
 
     except Exception as e:
-        print(f"❌ Failed to initialize car: {str(e)}")
+        print(f"Failed to initialize car: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -332,7 +332,7 @@ async def load_car(manufacturer: str, model: str, year: Optional[int] = None):
     try:
         current_car = load_specific_car_from_db(manufacturer, model, year)
         year_str = f" ({year})" if year else ""
-        print(f"\n🔧 Debug: Loaded specific car:")
+        print(f"\nDebug: Loaded specific car:")
         print(f"   Car: {current_car['manufacturer']} {current_car['model']}{year_str}")
         print(f"   Available fields: {list(current_car['commands'].keys())}")
         for field, value in current_car['commands'].items():
@@ -371,13 +371,13 @@ async def test_field(request: TestFieldRequest):
     test_value = request.value
     
     # Debug logging
-    print(f"\n🔍 Testing field: {field}")
+    print(f"\nTesting field: {field}")
     print(f"   Test value type: {type(test_value)}")
     print(f"   Test value: {test_value[:2] if isinstance(test_value, list) and len(test_value) > 2 else test_value}")
     
     # Check if the car has this field
     if field not in current_car["commands"]:
-        print(f"   ❌ Field '{field}' not available in current car")
+        print(f"   Field '{field}' not available in current car")
         print(f"   Available fields: {list(current_car['commands'].keys())}")
         return TestFieldResponse(
             field=field,
@@ -397,9 +397,10 @@ async def test_field(request: TestFieldRequest):
     print(f"   Test normalized: {test_value_str[:100]}...")
     print(f"   Actual normalized: {actual_value_str[:100]}...")
     
+    # comparison
     matched = test_value_str == actual_value_str
     
-    print(f"   {'✅ MATCH!' if matched else '❌ No match'}")
+    print(f"   {'MATCH!' if matched else 'No match'}")
     
     return TestFieldResponse(
         field=field,
@@ -416,7 +417,7 @@ async def reset_car():
     global current_car
     try:
         current_car = load_random_car_from_db()
-        print(f"\n🔄 Car reset:")
+        print(f"\nCar reset:")
         print(f"   New car: {current_car['manufacturer']} {current_car['model']} {current_car.get('year', '')}")
         print(f"   Available fields: {list(current_car['commands'].keys())}")
         
